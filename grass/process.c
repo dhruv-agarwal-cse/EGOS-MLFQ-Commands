@@ -130,6 +130,10 @@ void mlfq_update_level(struct process* p, ulonglong runtime) {
 
     if (p == NULL) return;
 
+    if (p->pid >= GPID_USER_START) {
+        my_printf("[MLFQ] pid=%d runtime=%d before update: level=%d t_remaining=%d\n", (int)p->pid, (int)runtime, (int)p->level, (int)p->t_remaining);
+    }
+
     if (runtime >= p->t_remaining) {
         if (p->level < MLFQ_NLEVELS - 1) {
             p->level++;
@@ -137,6 +141,10 @@ void mlfq_update_level(struct process* p, ulonglong runtime) {
         p->t_remaining = MLFQ_LEVEL_RUNTIME(p->level);
     } else {
         p->t_remaining -= runtime;
+    }
+
+    if (p->pid >= GPID_USER_START) {
+        my_printf("[MLFQ] pid=%d after update: level=%d t_remaining=%d\n", (int)p->pid, (int)p->level, (int)p->t_remaining);
     }
 
     /* Student's code ends here. */
@@ -154,6 +162,9 @@ void mlfq_reset_level() {
             if (proc_set[i].pid == GPID_SHELL && proc_set[i].status != PROC_UNUSED) {
                 proc_set[i].level = 0;
                 proc_set[i].t_remaining = MLFQ_LEVEL_RUNTIME(0);
+                if (proc_set[i].pid >= GPID_USER_START) {
+                    my_printf("[MLFQ] Shell priority boosted due to keyboard input.\n");
+                }
                 break;
             }
         }
@@ -167,6 +178,7 @@ void mlfq_reset_level() {
             if (proc_set[i].status != PROC_UNUSED && proc_set[i].pid >= GPID_USER_START) {
                 proc_set[i].level = 0;
                 proc_set[i].t_remaining = MLFQ_LEVEL_RUNTIME(0);
+                my_printf("[MLFQ] Periodic reset: pid=%d moved to level 0\n", (int)proc_set[i].pid);
             }
         }
     }

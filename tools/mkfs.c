@@ -125,25 +125,25 @@ int main() {
         }
     closedir(dp);
 
-    /* Add testfile.txt to /home/yunhao (inode 2) */
-    {
-        int file_size = load_file("./images/testfile.txt", inode);
-        printf("[INFO] Load ino=%d, testfile.txt: %d bytes\n", app_ino, file_size);
+    // /* Add testfile.txt to /home/yunhao (inode 2) */
+    // {
+    //     int file_size = load_file("./images/testfile.txt", inode);
+    //     printf("[INFO] Load ino=%d, testfile.txt: %d bytes\n", app_ino, file_size);
 
-        /* Write file contents into inode app_ino */
-        for (uint b = 0; b * BLOCK_SIZE < file_size; b++)
-            filesys->write(filesys, app_ino, b, (void*)(inode + b * BLOCK_SIZE));
+    //     /* Write file contents into inode app_ino */
+    //     for (uint b = 0; b * BLOCK_SIZE < file_size; b++)
+    //         filesys->write(filesys, app_ino, b, (void*)(inode + b * BLOCK_SIZE));
 
-        /* Append entry to /home/yunhao directory (inode 2) */
-        filesys->read(filesys, 2, 0, (void*)inode);
-        size_t len = strlen(inode);
-        sprintf(inode + len, "testfile.txt %4d ", app_ino);
+    //     /* Append entry to /home/yunhao directory (inode 2) */
+    //     filesys->read(filesys, 2, 0, (void*)inode);
+    //     size_t len = strlen(inode);
+    //     sprintf(inode + len, "testfile.txt %4d ", app_ino);
 
-        /* Write updated /home/yunhao directory (inode 2) */
-        filesys->write(filesys, 2, 0, (void*)inode);
+    //     /* Write updated /home/yunhao directory (inode 2) */
+    //     filesys->write(filesys, 2, 0, (void*)inode);
 
-        app_ino++;
-    }
+    //     app_ino++;
+    // }
 
     filesys->write(filesys, BIN_DIR_INODE, 0, (void*)bin_dir);
     printf("[INFO] Load ino=%ld, %s\n", BIN_DIR_INODE, bin_dir);

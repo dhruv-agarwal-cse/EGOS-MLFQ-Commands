@@ -83,6 +83,11 @@ static void intr_entry(uint id) {
         p->t_cpu += running_time_on_cpu;
         p->num_interrupts++;
 
+        if (p->pid >= GPID_USER_START) {
+            my_printf("[INTR] pid=%d timer interrupt: ran=%d t_cpu=%d\n",
+                      (int)p->pid, (int)running_time_on_cpu, (int)p->t_cpu);
+        }
+
         mlfq_update_level(p, running_time_on_cpu);
     }
 
@@ -135,6 +140,11 @@ static void proc_yield() {
 
     if (!is_found)
         FATAL("proc_yield: no runnable process");
+
+    if (proc_set[next_idx].pid >= GPID_USER_START) {
+        my_printf("[SCHED] Switching from pid=%d to pid=%d (level=%d)\n",
+                  (int)curr_pid, (int)proc_set[next_idx].pid, (int)proc_set[next_idx].level);
+    }
 
     /* Student's code ends here. */
 
