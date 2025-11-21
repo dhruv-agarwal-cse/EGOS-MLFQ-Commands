@@ -69,10 +69,22 @@ static void excp_entry(uint id) {
 }
 
 static void intr_entry(uint id) {
-    if (id != INTR_ID_TIMER) FATAL("excp_entry: kernel got interrupt %d", id);
+    if (id != INTR_ID_TIMER)
+        FATAL("intr_entry: kernel got non-timer interrupt %d", id);
+
     /* Student's code goes here (Preemptive Scheduler). */
 
     /* Update the process lifecycle statistics. */
+    struct process* p = &proc_set[curr_proc_idx];
+    ulonglong current_time = mtime_get();
+
+    if (p->status == PROC_RUNNING) {
+        ulonglong running_time_on_cpu = current_time - p->latest_running_start_time;
+        p->t_cpu += running_time_on_cpu;
+        p->num_interrupts++;
+
+        mlfq_update_level(p, running_time_on_cpu);
+    }
 
     /* Student's code ends here. */
     proc_yield();
@@ -83,39 +95,47 @@ static void proc_yield() {
 
     /* Student's code goes here (Multiple Projects). */
 
-    /* [Preemptive Scheduler]
-     * Measure and record lifecycle statistics for the *current* process.
-     * Modify the loop below to find the next process to schedule with MLFQ.
-     * [System Call & Protection]
-     * Do not schedule a process that should still be sleeping at this time. */
+    mlfq_reset_level(); // Calling reset level everytime the scheduler is invoked to check for starvation and pending keyboard inputs
+    int next_idx = -1;
+    bool is_found = false;
 
-    int next_idx = MAX_NPROCESS;
-    for (uint i = 1; i <= MAX_NPROCESS; i++) {
-        struct process* p = &proc_set[(curr_proc_idx + i) % MAX_NPROCESS];
-        if (p->status == PROC_PENDING_SYSCALL) proc_try_syscall(p);
+    for (int lvl = 0; lvl < MLFQ_NLEVELS && !is_found; lvl++) {
+        for (uint i = 1; i <= MAX_NPROCESS; i++) {
+            int idx = (curr_proc_idx + i) % MAX_NPROCESS;
+            struct process* p = &proc_set[idx];
 
-        if (p->status == PROC_READY || p->status == PROC_RUNNABLE) {
-            next_idx = (curr_proc_idx + i) % MAX_NPROCESS;
-            break;
+            if (p->status == PROC_PENDING_SYSCALL) // Trying to unblock pending syscalls 
+                proc_try_syscall(p);
+
+            if (p->status == PROC_SLEEPING) { // Checking if any sleeping processes can be woken up (Although this will never happen since sleep syscall is not handled, but adding this code here just because the comments said to do so)
+                ulonglong now = mtime_get();
+                if (now >= p->wake_time) {
+                    p->status = PROC_RUNNABLE;
+                } else {
+                    continue;
+                }
+            }
+
+            if (p->status != PROC_READY && p->status != PROC_RUNNABLE) // Skipping anything not runnable
+                continue;
+
+            if (p->pid < GPID_USER_START) { // Scheduling Kernel process first, no matter their level
+                next_idx = idx;
+                is_found = true;
+                break;
+            }
+
+            if (p->level == lvl) { // Finding the first process for this level's queue
+                next_idx = idx;
+                is_found = true;
+                break;
+            }
         }
     }
 
-    if (next_idx < MAX_NPROCESS) {
-        /* [Preemptive Scheduler]
-         * Measure and record lifecycle statistics for the *next* process.
-         * [System Call & Protection | Multicore & Locks]
-         * Modify mstatus.MPP to enter machine or user mode after mret. */
+    if (!is_found)
+        FATAL("proc_yield: no runnable process");
 
-    } else {
-        /* [Multicore & Locks]
-         * Release the kernel lock.
-         * [Multicore & Locks | System Call & Protection]
-         * Set curr_proc_idx to 0; Reset the timer;
-         * Enable interrupts by setting the mstatus.MIE bit to 1;
-         * Wait for the next interrupt using the wfi instruction. */
-
-        FATAL("proc_yield: no process to run on core %d", core_in_kernel);
-    }
     /* Student's code ends here. */
 
     curr_proc_idx = next_idx;

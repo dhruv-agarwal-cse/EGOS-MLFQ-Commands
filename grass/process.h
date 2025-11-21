@@ -2,6 +2,8 @@
 
 #include "egos.h"
 #include "syscall.h"
+#include <stdbool.h>
+#include <stddef.h>
 
 enum proc_status {
     PROC_UNUSED,
@@ -9,9 +11,11 @@ enum proc_status {
     PROC_READY,
     PROC_RUNNING,
     PROC_RUNNABLE,
-    PROC_PENDING_SYSCALL
+    PROC_PENDING_SYSCALL,
+    PROC_SLEEPING
 };
 
+#define MLFQ_NLEVELS          5
 #define MAX_NPROCESS        16
 #define SAVED_REGISTER_NUM  32
 #define SAVED_REGISTER_SIZE SAVED_REGISTER_NUM * 4
@@ -24,7 +28,21 @@ struct process {
     uint mepc, saved_registers[SAVED_REGISTER_NUM];
     /* Student's code goes here (Preemptive Scheduler | System Call). */
 
-    /* Add new fields for lifecycle statistics, MLFQ or process sleep. */
+    // Lifecycle statistics
+    uint t_created;
+    uint t_started;
+    uint t_finished;
+    uint t_cpu;
+    uint num_interrupts;
+    bool has_started;
+
+    // MLFQ fields
+    int level;
+    uint t_remaining;
+
+    // Sleep and interrupt fields
+    ulonglong latest_running_start_time;
+    ulonglong wake_time;
 
     /* Student's code ends here. */
 };
