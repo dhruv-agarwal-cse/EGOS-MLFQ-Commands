@@ -84,8 +84,17 @@ void proc_free(int pid) {
                 uint cpu        = proc_set[i].t_cpu;
                 uint interrupts       = proc_set[i].num_interrupts;
 
-                my_printf("[STATS] pid=%d created=%u started=%u finished=%u\n", pid, created, started, finished);
-                my_printf("[STATS] pid=%d turnaround=%u response=%u cpu=%u interrupts=%u\n", pid, turnaround, response, cpu, interrupts);
+                uint created_ms    = created   / 1000;
+                uint started_ms    = started   / 1000;
+                uint finished_ms   = finished  / 1000;
+                uint turnaround_ms = turnaround / 1000;
+                uint response_ms   = response   / 1000;
+                uint cpu_ms        = cpu        / 1000;
+
+                if (pid >= GPID_USER_START) {
+                    my_printf("[STATS] pid = %d | created = %d | started = %d | finished = %d\n", pid, created_ms, started_ms, finished_ms);
+                    my_printf("[STATS] pid = %d | turnaround = %d ms | response = %d ms | cpu time = %d ms | interrupts = %d\n", pid, turnaround_ms, response_ms, cpu_ms, interrupts);
+                }
                 break;
             }
         }
@@ -106,8 +115,17 @@ void proc_free(int pid) {
                 uint cpu        = proc_set[i].t_cpu;
                 uint intr       = proc_set[i].num_interrupts;
 
-                my_printf("[STATS] pid=%d created=%u started=%u finished=%u\n", p_id, created, started, finished);
-                my_printf("[STATS] pid=%d turnaround=%u response=%u cpu=%u interrupts=%u\n", p_id, turnaround, response, cpu, intr);
+                uint created_ms    = created   / 1000;
+                uint started_ms    = started   / 1000;
+                uint finished_ms   = finished  / 1000;
+                uint turnaround_ms = turnaround / 1000;
+                uint response_ms   = response   / 1000;
+                uint cpu_ms        = cpu        / 1000;
+
+                if (p_id >= GPID_USER_START) {
+                    my_printf("[STATS] pid = %d | created = %d | started = %d | finished = %d\n", p_id, created_ms, started_ms, finished_ms);
+                    my_printf("[STATS] pid = %d | turnaround = %d ms | response = %d ms | cpu time = %d ms | interrupts = %d\n", p_id, turnaround_ms, response_ms, cpu_ms, intr);
+                }
             }
         }
         
