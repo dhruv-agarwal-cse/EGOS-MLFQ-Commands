@@ -2,7 +2,7 @@
 
 ## Team Member Names
 - **Dhruv Agarwal (2024187)**
-- **Akshit K B Bansal (2024058)**
+- **Akshit K Bansal (2024058)**
 
 **Group Number:** 18
 
