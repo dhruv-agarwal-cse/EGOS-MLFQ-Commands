@@ -1,50 +1,135 @@
-## Vision
+# OS-Assignment (MLFQ Scheduler + User Commands)
 
-This project's vision is to help **every** student read **all** the code of a teaching operating system.
+## Team Member Names
+- **Dhruv Agarwal (2024187)**
+- **Akshit K B Bansal (2024058)**
 
-With only **2000** lines of code, egos-2000 implements every component of a teaching operating system that runs on both QEMU and RISC-V boards.
-The [EGOS book](https://egos.fun/book/overview.html) contains 9 course projects based on egos-2000.
+**Group Number:** 18
 
-![Fail to load an image of egos-2000.](tools/images/egos-2000.jpg)
+---
 
-```shell
-# The cloc utility is used to count the lines of code.
-> cloc egos-2000 --exclude-ext=md,txt,toml,json  # excluding text files
-...
-github.com/AlDanial/cloc v 1.94  T=0.05 s (949.3 files/s, 62349.4 lines/s)
--------------------------------------------------------------------------------
-Language                     files          blank        comment           code
--------------------------------------------------------------------------------
-C                               29            424            576           1589
-C/C++ Header                     9             62             99            261
-Assembly                         3             14             46             92
-make                             1             16              7             58
--------------------------------------------------------------------------------
-SUM:                            42            516            728           2000 (exactly!)
--------------------------------------------------------------------------------
-```
+## Contributions
+- The design, logic, and overall MLFQ strategy were jointly planned.
+- Kernel integration, debugging, interrupt tracing, and logging improvements were done collaboratively.
+- Both members contributed to writing, running, and testing user processes.
+- Final polishing, documentation, and cleanup were completed together.
 
-## Earth and Grass Operating System
+---
 
-The **egos** part of egos-2000 is named after its three-layer architecture.
+## Overview
+This assignment extends the EGOS-2000 Operating System by implementing:
 
-* The **earth layer** implements hardware-specific abstractions.
-    * tty and disk device interface
-    * timer and memory management interface
-* The **grass layer** implements hardware-independent abstractions.
-    * process control block and system call interface
-* The **application layer** implements file system, shell and user commands.
+1. **A fully functioning Multi-Level Feedback Queue (MLFQ) scheduler** within the kernel.  
+2. **User-level programs** compiled into the OS filesystem.
 
-The definitions of `struct earth` and `struct grass` in header file [egos.h](library/egos.h) specify the layer interface.
-Please read [USAGES.md](USAGES.md) for running egos-2000 and
-the [instruction set manuals](https://github.com/riscv/riscv-isa-manual/releases) for the RISC-V privileged ISA.
+The scheduler handles timer interrupts, CPU time accounting, level demotion/promotion, starvation prevention, and lifecycle statistics.  
+The user programs run on top of this MLFQ scheduler without modifying the EGOS syscall surface.
 
-## Acknowledgements
+---
 
-Many thanks to Meta for a [Facebook fellowship](https://research.facebook.com/blog/2021/4/announcing-the-recipients-of-the-2021-facebook-fellowship-awards/).
-Many thanks to [Robbert van Renesse](https://www.cs.cornell.edu/home/rvr/), [Lorenzo Alvisi](https://www.cs.cornell.edu/lorenzo/), [Shan Lu](https://people.cs.uchicago.edu/~shanlu/), [Hakim Weatherspoon](https://www.cs.cornell.edu/~hweather/) and [Christopher Batten](https://www.csl.cornell.edu/~cbatten/) for their support.
-Many thanks to [Cheng Tan](https://naizhengtan.github.io/) and [Yu-Ju Huang](https://yuju-huang.github.io/) for providing valuable feedback to the EGOS book and using egos-2000 in [Northeastern CS4973/6640](https://naizhengtan.github.io/25spring/) and [Cornell CS4411/5411](https://www.cs.cornell.edu/courses/cs4411/2025sp/).
-Many thanks to [Haobin Ni](https://haobin.cx/) and [Hongbo Zhang](https://www.cs.cornell.edu/~hongbo/) for [porting egos-2000 to mriscv](https://github.com/0x486F626F/mriscv/tree/egos), a simple processor written in SystemVerilog.
-Many thanks to [Brandon Fusi](https://www.linkedin.com/in/brandon-cheo-fusi-b94b1a171/) for [porting egos-2000 to Allwinner D1](https://github.com/cheofusi/egos-2000-d1) and Sipeed's [Lichee RV64 Nezha compute module](https://wiki.sipeed.com/hardware/en/lichee/RV/RV.html).
+## Core Components
 
-For any questions, please contact [Yunhao Zhang](https://dolobyte.net/).
+### ✔ 1. MLFQ Scheduler (Kernel-Level)
+Implemented inside:
+- `kernel.c`
+- `process.c`
+- `process.h`
+
+**Main functionalities:**
+- Five priority queues (0–4).
+- Each level has its own time quantum.
+- Timer interrupts compute:
+  - CPU time consumed (`t_cpu`)
+  - Number of interrupts (`num_interrupts`)
+  - Remaining quantum (`t_remaining`)
+- Automatic **demotion** when quantum expires.
+- Periodic **global reset/boost** to avoid starvation.
+- Tracks:
+  - creation time  
+  - first-run time  
+  - finish time  
+  - turnaround time  
+  - response time  
+  - CPU usage  
+  - number of interrupts  
+
+### ✔ 2. Kernel Modifications
+#### **kernel.c**
+- Reads `mcause` to differentiate interrupt vs syscall.
+- `intr_entry()` updated to:
+  - compute runtime since last scheduled timestamp
+  - log timer interrupts
+  - update CPU stats
+  - call `mlfq_update_level()`
+- `proc_yield()` updated to:
+  - perform MLFQ-based process selection
+  - skip sleeping and non-runnable processes
+  - handle pending syscalls
+  - reset timer on every context switch
+
+#### **process.c**
+- Added new fields:
+  - `level`
+  - `t_cpu`
+  - `t_remaining`
+  - `latest_running_start_time`
+  - `num_interrupts`
+- Implemented:
+  - `mlfq_update_level()`
+  - `mlfq_reset_level()`
+  - lifecycle bookkeeping
+
+#### **process.h**
+- Added MLFQ constants:
+  - number of levels  
+  - quantum sizes  
+  - reset interval  
+- Added fields in the PCB for stats.
+
+---
+
+## 3. User Process Demonstration
+To validate scheduling, we used:
+
+### ✔ CPU-bound user program
+A looped computation with no syscalls:
+
+- Triggers timer interrupts.
+- Gets demoted through levels.
+- Produces non-zero CPU time and interrupt counts.
+
+### ✔ I/O-bound user program
+A `my_printf()` heavy program:
+
+- Frequently yields due to syscalls.
+- Stays in higher queues.
+- Demonstrates good interactivity.
+
+---
+
+## Lifecycle Statistics
+Printed at termination:
+[STATS] pid = X |
+created = …
+started = …
+finished = …
+turnaround = …
+response = …
+cpu time = …
+interrupts = …
+
+All values update correctly after MLFQ integration.
+
+---
+
+## Final Behavior Summary
+- Timer interrupts now update CPU time correctly.
+- Scheduler transitions print clean logs.
+- User tasks run correctly under MLFQ priority rules.
+- Starvation is prevented via periodic priority resets.
+- System behaves identically to assignment expectations.
+
+---
+
+## Github Repo Link
+https://github.com/dhruv-agarwal-cse/EGOS-MLFQ-Commands
