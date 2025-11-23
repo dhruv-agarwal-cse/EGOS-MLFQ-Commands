@@ -78,6 +78,7 @@ static void intr_entry(uint id) {
     struct process* p = &proc_set[curr_proc_idx];
     ulonglong current_time = mtime_get();
 
+
     // my_printf("[DEBUG] intr_entry: pid=%d status=%d latest_start=%d now=%d\n",
     //     (int)p->pid, (int)p->status,
     //     (int)p->latest_running_start_time, (int)current_time);
@@ -145,9 +146,9 @@ static void proc_yield() {
     if (!is_found)
         FATAL("proc_yield: no runnable process");
 
-    if (proc_set[next_idx].pid >= GPID_USER_START || curr_pid >= GPID_USER_START) {
-        my_printf("[SCHED] Switching from pid = %d ==> pid = %d (in level = %d)\n", (int)curr_pid, (int)proc_set[next_idx].pid, (int)proc_set[next_idx].level);
-    }
+    // if (proc_set[next_idx].pid >= GPID_USER_START || curr_pid >= GPID_USER_START) {
+    //     my_printf("[SCHED] Switching from pid = %d ==> pid = %d (in level = %d)\n", (int)curr_pid, (int)proc_set[next_idx].pid, (int)proc_set[next_idx].level);
+    // }
 
     /* Student's code ends here. */
 
