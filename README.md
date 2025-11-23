@@ -29,7 +29,7 @@ The user programs run on top of this MLFQ scheduler without modifying the EGOS s
 
 ## Core Components
 
-### ✔ 1. MLFQ Scheduler (Kernel-Level)
+### 1. MLFQ Scheduler (Kernel-Level)
 Implemented inside:
 - `kernel.c`
 - `process.c`
@@ -53,7 +53,7 @@ Implemented inside:
   - CPU usage  
   - number of interrupts  
 
-### ✔ 2. Kernel Modifications
+### 2. Kernel Modifications
 #### **kernel.c**
 - Reads `mcause` to differentiate interrupt vs syscall.
 - `intr_entry()` updated to:
@@ -91,14 +91,14 @@ Implemented inside:
 ## 3. User Process Demonstration
 To validate scheduling, we used:
 
-### ✔ CPU-bound user program
+### CPU-bound user program
 A looped computation with no syscalls:
 
 - Triggers timer interrupts.
 - Gets demoted through levels.
 - Produces non-zero CPU time and interrupt counts.
 
-### ✔ I/O-bound user program
+### I/O-bound user program
 A `my_printf()` heavy program:
 
 - Frequently yields due to syscalls.
